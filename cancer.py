@@ -29,7 +29,9 @@ CONFIG_DEFAULTS = {
     'ImgSize': '-1',
     'InitialDim': '-1,-1',
     'EndDim': '-1,-1',
-    'ImageDim': '-1,-1'
+    'ImageDim': '-1,-1',
+    'Undersample': '1',
+    'Oversample': '1'
 }
 
 NETWORK = {
@@ -70,7 +72,7 @@ class LossHistory(Callback):
             print('%s: %s' % (entry['name'], ('%s' % entry['value']).rstrip('0').rstrip('.')))
         #self.losses.append(logs.get('loss'))
 
-def generate_patches(pipe_conn, gen_args, patch_type, dims, qty = None):
+def generate_patches(pipe_conn, gen_args, patch_type, dims, qty = None, undersample = 1, oversample = 1):
     sys.stdout = open(os.devnull, 'w')
     train_datagen = ImageDataGenerator()#preprocessing_function = lambda x: x - gen_args[0])
     datagen = train_datagen.flow_from_directory(gen_args[1],
@@ -79,6 +81,24 @@ def generate_patches(pipe_conn, gen_args, patch_type, dims, qty = None):
                                                 class_mode = 'categorical',
                                                 shuffle = False)
     sys.stdout = sys.__stdout__
+
+    # Which is the mayority class?
+    class_qty = {}
+    mayority = -1
+    mayority_class = None
+    for class_name in datagen.class_indices:
+        index = datagen.class_indices[class_name]
+        class_qty[index] = np.where(datagen.classes == index)[0].shape[0]
+        if class_qty[index] > mayority:
+            mayority = class_qty[index]
+            mayority_class = index
+
+    # If undersample/oversample is negative we will balance
+    if undersample < 0:
+        undersample = class_qty[1-mayority_class] / class_qty[mayority_class]
+
+    if oversample < 0:
+        oversample = class_qty[mayority_class] / class_qty[1-mayority_class]
 
     steps = datagen.n / datagen.batch_size
     patches = []
@@ -92,7 +112,8 @@ def generate_patches(pipe_conn, gen_args, patch_type, dims, qty = None):
         for j, img in enumerate(batch[0]):
             # Generate the coordinates for qty random patches in the image
             if patch_type == 'random':
-                coord = preprocessing.split_random_patches(img, dims[0], dims[1], qty)
+                quantity = int(qty * undersample) if truth_class[j] == mayority_class else int(qty * oversample)
+                coord = preprocessing.split_random_patches(img, dims[0], dims[1], quantity)
             elif patch_type == 'window':
                 coord = preprocessing.split_window_patches(img, dims[0], dims[1])
             elif patch_type == 'grid':
@@ -103,6 +124,7 @@ def generate_patches(pipe_conn, gen_args, patch_type, dims, qty = None):
         if i >= steps-1:
             break
 
+    print('Samples: %d' % len(patches))
     filenames = ['%s/%s' % (gen_args[1], filename) for filename in datagen.filenames]
     pipe_conn.send([patches, filenames])
     pipe_conn.close()
@@ -150,6 +172,8 @@ class CancerTrainer(object):
             self.initial_dim = [int(d) for d in config.get('preprocessing', 'InitialDim').split(',')]
             self.net_dim = [int(d) for d in config.get('preprocessing', 'FinalDim').split(',')]
             self.random_patches = config.getint('preprocessing', 'RandomPatches')
+            self.undersample = config.getfloat('preprocessing', 'Undersample')
+            self.oversample = config.getfloat('preprocessing', 'Oversample')
         else:
             self.initial_dim = self.net_dim
         self.__infer_img_size()
@@ -259,7 +283,7 @@ class CancerTrainer(object):
 
                 # Generate batch for first epoch
                 if epoch == 0:
-                    process = Process(target = generate_patches, args = (child_conn, [self.avg_img, self.training, self.initial_dim, self.batch_size], self.preprocessing, (self.net_dim[0], self.net_dim[1]), self.random_patches))
+                    process = Process(target = generate_patches, args = (child_conn, [self.avg_img, self.training, self.initial_dim, self.batch_size], self.preprocessing, (self.net_dim[0], self.net_dim[1]), self.random_patches, self.undersample, self.oversample))
                     process.start()
 
                 # Gather batch data computed in parallel
@@ -269,7 +293,7 @@ class CancerTrainer(object):
 
                 # Start generating batch for next epoch
                 if epoch < self.epochs-1 and self.preprocessing == 'random':
-                    process = Process(target = generate_patches, args = (child_conn, [self.avg_img, self.training, self.initial_dim, self.batch_size], self.preprocessing, (self.net_dim[0], self.net_dim[1]), self.random_patches))
+                    process = Process(target = generate_patches, args = (child_conn, [self.avg_img, self.training, self.initial_dim, self.batch_size], self.preprocessing, (self.net_dim[0], self.net_dim[1]), self.random_patches, self.undersample, self.oversample))
                     process.start()
 
                 generator = self.patches_generator(epoch_data[0], epoch_data[1], self.batch_size, (self.net_dim[0],self.net_dim[1]))
