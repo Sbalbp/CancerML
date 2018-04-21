@@ -3,13 +3,17 @@ import argparse
 
 import numpy as np
 import pandas as pd
-import seaborn as sns
 import matplotlib.pyplot as plt
 
 def plot_train_test_from_csv(csv_file):
     column_names = ['train img score','train patient score','test img score','test patient score']
 
-    cancer_res = pd.read_csv(csv_file, header = None)
+    try:
+        cancer_res = pd.read_csv(csv_file, header = None)
+    except Exception as e:
+        print('Error opening \'%s\': %s' % (csv_file, e))
+        return
+
     cancer_res = cancer_res.loc[:, 0:(3 if cancer_res.shape[1] > 3 else 1)]
     cancer_res.columns = column_names[0:cancer_res.shape[1]]
 
@@ -32,7 +36,7 @@ def plot_in_dirs(src_dir):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser( description = 'Plotting utilities for the cancer dataset' )
-    parser.add_argument( '-s', dest = 'source', metavar = 'Source directory', required = True, help = 'Location of the log files' )
+    parser.add_argument( '-s', dest = 'source', metavar = 'Source directory', required = True, help = 'Root location of the log files' )
 
     args = parser.parse_args()
 
