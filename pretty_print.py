@@ -66,7 +66,7 @@ def print_results_summary(summary):
             mean = np.mean(summary[resolution][score])
             std = np.std(summary[resolution][score])
 
-            data_line[score] += ('%s +/- %s' % (str(mean), str(std))).center(data_size) + '|'
+            data_line[score] += ('%.4f +/- %.4f' % (mean, std)).center(data_size) + '|'
 
             if i == len(resolutions)-1:
                 data_line[score] += '\n'
