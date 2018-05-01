@@ -24,6 +24,7 @@ import evaluator
 import pretty_print
 from alexnet import AlexNet
 from resnet import ResNet
+from densenet import DenseNet
 
 CONFIG_DEFAULTS = {
     'ImgSize': '-1',
@@ -36,7 +37,8 @@ CONFIG_DEFAULTS = {
 
 NETWORK = {
     'alexnet': AlexNet,
-    'resnet': ResNet
+    'resnet': ResNet,
+    'densenet': DenseNet
 }
 
 def makedirs_functions(name):
