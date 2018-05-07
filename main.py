@@ -10,7 +10,7 @@ if __name__ == "__main__":
     train_config.read('train.cfg')
 
     experiment_name = train_config.get('parameters','Name')
-    config_route = train_config.get('parameters','NetworkConfig')
+    config_routes = [cfg_file.strip() for cfg_file in train_config.get('parameters','NetworkConfig').split(',')]
     dataset_path = train_config.get('parameters','DatasetPath')
     folds_dir = train_config.get('parameters','FoldsDir')
     averages_dir = train_config.get('parameters','AveragesDir')
@@ -20,64 +20,65 @@ if __name__ == "__main__":
     patch_types = [ptype.strip() for ptype in train_config.get('parameters','PatchTypes').split(',')]
     patch_sizes = [int(psize) for psize in train_config.get('parameters','PatchSizes').split(',')]
 
+    print(config_routes)
     print(folds)
     print(resolutions)
     print(patch_types)
     print(patch_sizes)
 
-    cancer_tr = CancerTrainer(config_route)
-    for resolution in resolutions:
-        for fold in folds:
-            path_str_b = '%dX' % resolution
+    for config_route in config_routes:
+        cancer_tr = CancerTrainer(config_route)
+        for resolution in resolutions:
+            for fold in folds:
+                path_str_b = '%dX' % resolution
 
-            path_str_a_train = '/fold%d' % fold
-            avg_img = '%s/%s/%s/average_fold%d_train_%s.png' % (dataset_path, averages_dir, folds_dir, fold, path_str_b)
+                path_str_a_train = '/fold%d' % fold
+                avg_img = '%s/%s/%s/average_fold%d_train_%s.png' % (dataset_path, averages_dir, folds_dir, fold, path_str_b)
 
-            train_dir = '%s/%s%s/%s/%s' % (dataset_path, folds_dir, path_str_a_train, 'train', path_str_b)
-            test_dir = '%s/%s%s/%s/%s' % (dataset_path, folds_dir, path_str_a_train, 'test', path_str_b)
+                train_dir = '%s/%s%s/%s/%s' % (dataset_path, folds_dir, path_str_a_train, 'train', path_str_b)
+                test_dir = '%s/%s%s/%s/%s' % (dataset_path, folds_dir, path_str_a_train, 'test', path_str_b)
 
-            
-            model_dir = '%s/%s/%s%s/%s/model' % (dataset_path, output_dir, folds_dir, path_str_a_train, path_str_b)
-            log_dir = '%s/%s/%s%s/%s/log' % (dataset_path, output_dir, folds_dir, path_str_a_train, path_str_b)
-            
+                
+                model_dir = '%s/%s/%s%s/%s/model' % (dataset_path, output_dir, folds_dir, path_str_a_train, path_str_b)
+                log_dir = '%s/%s/%s%s/%s/log' % (dataset_path, output_dir, folds_dir, path_str_a_train, path_str_b)
+                
 
-            
-            print(train_dir)
-            print(test_dir)
-            
-            
+                
+                print(train_dir)
+                print(test_dir)
+                
+                
 
 
-            cancer_tr.set_dataset(train_dir, test_dir, avg_img)
-            cancer_tr.set_network()
+                cancer_tr.set_dataset(train_dir, test_dir, avg_img)
+                cancer_tr.set_network()
 
-            params_str = '%s_%s_lr-%s_ep-%d_bs-%d_%s_%dx%d' % ( experiment_name,
-                                    cancer_tr.net_type,
-                                    str(cancer_tr.lr).rstrip('0'),
-                                    cancer_tr.epochs,
-                                    cancer_tr.batch_size,
-                                    'no_preprocessing' if not cancer_tr.preprocessing else cancer_tr.preprocessing,
-                                    cancer_tr.net_dim[0],
-                                    cancer_tr.net_dim[1])
+                params_str = '%s_%s_lr-%s_ep-%d_bs-%d_%s_%dx%d' % ( experiment_name,
+                                        cancer_tr.net_type,
+                                        str(cancer_tr.lr).rstrip('0'),
+                                        cancer_tr.epochs,
+                                        cancer_tr.batch_size,
+                                        'no_preprocessing' if not cancer_tr.preprocessing else cancer_tr.preprocessing,
+                                        cancer_tr.net_dim[0],
+                                        cancer_tr.net_dim[1])
 
-            results_file = '%s/%s/%s%s/%s/%s_results.txt' % (dataset_path, output_dir, folds_dir, path_str_a_train, path_str_b, params_str)
-            json_file = '%s/%s_model.json' % (model_dir, params_str)
-            h5_file = '%s/%s_weights.h5' % (model_dir, params_str)
-            log_file = '%s/%s_log.csv' % (log_dir, params_str)
+                results_file = '%s/%s/%s%s/%s/%s_results.txt' % (dataset_path, output_dir, folds_dir, path_str_a_train, path_str_b, params_str)
+                json_file = '%s/%s_model.json' % (model_dir, params_str)
+                h5_file = '%s/%s_weights.h5' % (model_dir, params_str)
+                log_file = '%s/%s_log.csv' % (log_dir, params_str)
 
-            print(results_file)
-            print(json_file)
-            print(h5_file)
-            print(log_file)
+                print(results_file)
+                print(json_file)
+                print(h5_file)
+                print(log_file)
 
-            cancer_tr.train(log_file, json_file[:-5]+'_best_test'+json_file[-5:], h5_file[:-3]+'_best_test'+h5_file[-3:])
-            cancer_tr.save_model(json_file, h5_file)
-            cancer_tr.evaluate(filename = results_file)
-            # Evaluate with the best
+                cancer_tr.train(log_file, json_file[:-5]+'_best_test'+json_file[-5:], h5_file[:-3]+'_best_test'+h5_file[-3:])
+                cancer_tr.save_model(json_file, h5_file)
+                cancer_tr.evaluate(filename = results_file)
+                # Evaluate with the best
                 if cancer_tr.validate:
                     cancer_tr.set_network(json_file[:-5]+'_best_test'+json_file[-5:], h5_file[:-3]+'_best_test'+h5_file[-3:])
                     cancer_tr.evaluate(filename = (results_file[:-12]+'_best_test'+results_file[-12:]))
-
 
             #cancer_tr.set_dataset(eval_train_dir, eval_test_dir, avg_img)
 
