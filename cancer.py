@@ -272,7 +272,9 @@ class CancerTrainer(object):
             yield samples, labels
 
 
-    def train(self, log_file = None):
+    def train(self, log_file = None, chkp_model_file = None, chkp_weights_file = None):
+        best_on_test = 0
+
         if log_file:
             makedirs_exist_ok(os.path.dirname(log_file))
             f = open(log_file, 'a')
@@ -282,6 +284,7 @@ class CancerTrainer(object):
             parent_conn, child_conn = Pipe()
 
             for epoch in range(self.epochs):
+                print('EPOCH %d' % (epoch+1))
 
                 # Generate batch for first epoch
                 if epoch == 0:
@@ -322,6 +325,8 @@ class CancerTrainer(object):
                     log = '%s%.4f,' % (log, entry['value'])
                     
                 if self.validate:
+                    accuracy_acc = 0
+
                     parent_conn2, child_conn2 = Pipe()
                     process = Process(target = generate_patches, args = (child_conn2, [self.avg_img, self.test, self.initial_dim, self.batch_size], 'grid', (self.net_dim[0], self.net_dim[1]), self.random_patches))
                     process.start()
@@ -332,6 +337,15 @@ class CancerTrainer(object):
                     for entry in result['single']:
                         print('%s: %s' % (entry['name'], ('%s' % entry['value']).rstrip('0').rstrip('.')))
                         log = '%s%.4f,' % (log, entry['value'])
+
+                        # Check for improvements in test
+                        accuracy_acc += entry['value']
+                    if(accuracy_acc > best_on_test):
+                        print('NEW BEST FOUND ON TEST!')
+                        best_on_test = accuracy_acc
+
+                        if chkp_model_file and chkp_weights_file:
+                            self.save_model(chkp_model_file, chkp_weights_file)
 
                 log += '\n'
 
@@ -420,8 +434,6 @@ class CancerTrainer(object):
         with open(model_file, "w") as json_file:
             json_file.write(model_json)
 
-        #with open(model_file, 'w') as json_file:
-            #json_file.write(model_json)
         # serialize weights to HDF5
         makedirs_exist_ok(os.path.dirname(weights_file))
         self.network.classifier.save_weights(weights_file)

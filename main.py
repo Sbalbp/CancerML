@@ -70,9 +70,14 @@ if __name__ == "__main__":
             print(h5_file)
             print(log_file)
 
-            cancer_tr.train(log_file)
+            cancer_tr.train(log_file, json_file[:-5]+'_best_test'+json_file[-5:], h5_file[:-3]+'_best_test'+h5_file[-3:])
             cancer_tr.save_model(json_file, h5_file)
             cancer_tr.evaluate(filename = results_file)
+            # Evaluate with the best
+                if cancer_tr.validate:
+                    cancer_tr.set_network(json_file[:-5]+'_best_test'+json_file[-5:], h5_file[:-3]+'_best_test'+h5_file[-3:])
+                    cancer_tr.evaluate(filename = (results_file[:-12]+'_best_test'+results_file[-12:]))
+
 
             #cancer_tr.set_dataset(eval_train_dir, eval_test_dir, avg_img)
 
