@@ -17,10 +17,12 @@ class DenseNet(Network):
             x = BatchNormalization()(merged)
             x = Activation("relu")(x)
             x = Conv2D(4*self.growth_rate, (1, 1), strides = 1, kernel_initializer = RandomNormal(0, 0.0001))(x)
+            x = Dropout(self.drop_conv)(x)
             x = ZeroPadding2D(padding = 1)(x)
             x = BatchNormalization()(x)
             x = Activation("relu")(x)
             x = Conv2D(self.growth_rate, (3, 3), strides = 1, kernel_initializer = RandomNormal(0, 0.0001))(x)
+            x = Dropout(self.drop_conv)(x)
             # Concatenate inputs increasingly
             merged = concatenate([merged, x])
 
@@ -32,6 +34,9 @@ class DenseNet(Network):
         self.nconvs = 0
 
         try:
+            self.drop_conv = float(kwargs['drop_conv'])
+            self.drop_dense = float(kwargs['drop_dense'])
+
             self.dense_blocks = repetitions = [int(rep) for rep in kwargs['dense_blocks'].split(',')]
             self.growth_rate = int(kwargs['growth_rate'])
             self.theta = 1 if 'compression' not in kwargs.keys() else float(kwargs['compression'])
@@ -44,6 +49,7 @@ class DenseNet(Network):
         x = BatchNormalization(name = 'BN_init')(x)
         x = Activation("relu", name = 'ReLU_init')(x)
         x = Conv2D(self.growth_rate*2, (7, 7), strides = 2, kernel_initializer = RandomNormal(0, 0.0001), name = 'Conv_init')(x)
+        x = Dropout(self.drop_conv)(x)
         x = MaxPooling2D(pool_size = (3, 3), strides = 2, padding="same", name = 'MaxPool_init')(x)
 
         for i, reps in enumerate(self.dense_blocks):
@@ -55,6 +61,7 @@ class DenseNet(Network):
                 x = BatchNormalization(name = 'BN_trans_%d' % i)(x)
                 x = Activation("relu", name = 'ReLU_trans_%d' % i)(x)
                 x = Conv2D(int(K.int_shape(x)[3] * self.theta), (1, 1), strides = 1, kernel_initializer = RandomNormal(0, 0.0001), name = 'Conv_trans_%d' % i)(x)
+                x = Dropout(self.drop_conv)(x)
                 x = AveragePooling2D(pool_size = (2, 2), strides = 2, padding="same", name = 'AvgPool_trans_%d' % i)(x)
                 self.nconvs += 1
 

@@ -10,8 +10,8 @@ class AlexNet(Network):
 	def build_architecture(self, insize, **kwargs):
 
 		try:
-			drop_conv = float(kwargs['drop_conv'])
-			drop_dense = float(kwargs['drop_dense'])
+			self.drop_conv = float(kwargs['drop_conv'])
+			self.drop_dense = float(kwargs['drop_dense'])
 		except KeyError as e:
 			raise(TypeError('build_architecture: Missing argument: %s' % e))
 
@@ -20,23 +20,23 @@ class AlexNet(Network):
 		self.classifier = Sequential()
 		self.classifier.add(ZeroPadding2D(input_shape = (insize[0], insize[1], 3), padding = 2))
 		self.classifier.add(Conv2D(32, (5, 5), kernel_initializer = RandomNormal(0, 0.0001), activation = 'relu'))
+		self.classifier.add(Dropout(self.drop_conv))
 		self.classifier.add(MaxPooling2D(pool_size = (3, 3), strides = 2))
-		self.classifier.add(Dropout(drop_conv))
 
 		self.classifier.add(ZeroPadding2D(padding = 2))
 		self.classifier.add(Conv2D(32, (5, 5), kernel_initializer = RandomNormal(0, 0.01), activation = 'relu'))
+		self.classifier.add(Dropout(self.drop_conv))
 		self.classifier.add(AveragePooling2D(pool_size = (3, 3), strides = 2))
-		self.classifier.add(Dropout(drop_conv))
 
 		self.classifier.add(ZeroPadding2D(padding = 2))
 		self.classifier.add(Conv2D(64, (5, 5), kernel_initializer = RandomNormal(0, 0.0001), activation = 'relu'))
+		self.classifier.add(Dropout(self.drop_conv))
 		self.classifier.add(AveragePooling2D(pool_size = (3, 3), strides = 2))
-		self.classifier.add(Dropout(drop_conv))
 
 		self.classifier.add(Flatten())
 
 		self.classifier.add(Dense(units = 64, activation = 'relu'))
-		self.classifier.add(Dropout(drop_dense))
+		self.classifier.add(Dropout(self.drop_dense))
 		self.classifier.add(Dense(units = 2, activation = 'softmax'))
 
 

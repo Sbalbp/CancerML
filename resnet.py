@@ -68,9 +68,11 @@ class ResNet(Network):
                 x = BatchNormalization(name = 'BN_A_%d_%d' % (nfilters, i))(x)
                 x = Activation("relu", name = 'ReLU_A_%d_%d' % (nfilters, i))(x)
             x = Conv2D(nfilters, (3, 3), strides = init_stride, padding = "same", kernel_initializer = RandomNormal(0, 0.0001), name = 'Conv1_%d_%d' % (nfilters, i))(x)
+            x = Dropout(self.drop_conv)(x)
             x = BatchNormalization(name = 'BN_B_%d_%d' % (nfilters, i))(x)
             x = Activation("relu", name = 'ReLU_B_%d_%d' % (nfilters, i))(x)
             x = Conv2D(nfilters, (3, 3), strides = 1, padding = "same", kernel_initializer = RandomNormal(0, 0.0001), name = 'Conv2_%d_%d' % (nfilters, i))(x)
+            x = Dropout(self.drop_conv)(x)
             x = self.shortcut_conn(input_t, x)
 
         return x
@@ -79,6 +81,9 @@ class ResNet(Network):
 
 
         try:
+            self.drop_conv = float(kwargs['drop_conv'])
+            self.drop_dense = float(kwargs['drop_dense'])
+
             repetitions = [int(rep) for rep in kwargs['repetitions'].split(',')]
             print(repetitions)
         except KeyError as e:
@@ -88,6 +93,7 @@ class ResNet(Network):
         #x = input_layer
         x = ZeroPadding2D(padding = 2, name = 'Pad_init')(input_layer)
         x = Conv2D(64, (7, 7), strides = 2, kernel_initializer = RandomNormal(0, 0.0001), name = 'Conv_init')(x)
+        x = Dropout(self.drop_conv)(x)
         x = BatchNormalization(name = 'BN_init')(x)
         x = Activation("relu", name = 'ReLU_init')(x)
         x = MaxPooling2D(pool_size = (3, 3), strides = 2, padding="same", name = 'MaxPool_init')(x)
@@ -101,6 +107,7 @@ class ResNet(Network):
 
         x = Flatten()(x)
         x = Dense(units = 64, activation = 'relu')(x)
+        x = Dropout(self.drop_dense)(x)
         #x = Dropout(drop_dense)(x)
         x = Dense(units = 2, activation = 'softmax')(x)
         #x
