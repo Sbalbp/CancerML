@@ -53,8 +53,10 @@ if __name__ == "__main__":
                 cancer_tr.set_dataset(train_dir, test_dir, avg_img)
                 cancer_tr.set_network()
 
-                params_str = '%s_%s_lr-%s_ep-%d_bs-%d_%s_%dx%d' % ( experiment_name,
+                params_str = '%s_%s_unders-%s_overs-%s_lr-%s_ep-%d_bs-%d_%s_%dx%d' % ( experiment_name,
                                         cancer_tr.net_type,
+                                        str(1 if not cancer_tr.undersample else cancer_tr.undersample).rstrip('0').rstrip('.'),
+                                        str(1 if not cancer_tr.oversample else cancer_tr.oversample).rstrip('0').rstrip('.'),
                                         str(cancer_tr.lr).rstrip('0'),
                                         cancer_tr.epochs,
                                         cancer_tr.batch_size,
