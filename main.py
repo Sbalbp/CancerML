@@ -53,16 +53,20 @@ if __name__ == "__main__":
                 cancer_tr.set_dataset(train_dir, test_dir, avg_img)
                 cancer_tr.set_network()
 
-                params_str = '%s_%s_unders-%s_overs-%s_lr-%s_ep-%d_bs-%d_%s_%dx%d' % ( experiment_name,
+                params_str = '%s_%s_unders-%s_overs-%s_lr-%s_ep-%d_bs-%d_%s_npatch-%d_%dx%d_dropc-%s_dropd-%s' % ( experiment_name,
                                         cancer_tr.net_type,
-                                        str(1 if not cancer_tr.undersample else cancer_tr.undersample).rstrip('0').rstrip('.'),
-                                        str(1 if not cancer_tr.oversample else cancer_tr.oversample).rstrip('0').rstrip('.'),
+                                        str(1 if not hasattr(cancer_tr, 'undersample') else cancer_tr.undersample).rstrip('0').rstrip('.'),
+                                        str(1 if not hasattr(cancer_tr, 'oversample') else cancer_tr.oversample).rstrip('0').rstrip('.'),
                                         str(cancer_tr.lr).rstrip('0'),
                                         cancer_tr.epochs,
                                         cancer_tr.batch_size,
-                                        'no_preprocessing' if not cancer_tr.preprocessing else cancer_tr.preprocessing,
+                                        'no_preprocessing' if not hasattr(cancer_tr, 'preprocessing') else cancer_tr.preprocessing,
+                                        0 if not hasattr(cancer_tr, 'preprocessing') else cancer_tr.random_patches,
                                         cancer_tr.net_dim[0],
-                                        cancer_tr.net_dim[1])
+                                        cancer_tr.net_dim[1],
+                                        str(0 if not hasattr(cancer_tr.network, 'drop_conv') else cancer_tr.network.drop_conv).rstrip('0').rstrip('.'),
+                                        str(0 if not hasattr(cancer_tr.network, 'drop_dense') else cancer_tr.network.drop_dense).rstrip('0').rstrip('.')
+                                    )
 
                 results_file = '%s/%s/%s%s/%s/%s_results.txt' % (dataset_path, output_dir, folds_dir, path_str_a_train, path_str_b, params_str)
                 json_file = '%s/%s_model.json' % (model_dir, params_str)
