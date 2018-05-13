@@ -244,10 +244,10 @@ class CancerTrainer(object):
         if preload_imgs:
             images = np.array([cv2.imread(filename).astype(np.float64) for filename in filenames])#- self.avg_img for filename in filenames])
 
-            print('images', images.mean(), images.dtype)
-            #avg = np.sum(images / images.shape[0], 0)
-            #images -= avg
-            print('images averaged', images.mean(), images.dtype)
+            #print('images', images.mean(), images.dtype)
+            avg = np.sum(images / images.shape[0], 0)
+            images -= avg
+            #print('images averaged', images.mean(), images.dtype)
 
         sampled = 0
         while(True):
@@ -258,6 +258,9 @@ class CancerTrainer(object):
 
             if not preload_imgs:
                 images = np.array([cv2.imread(patches[index]['img']) for index in indexes])
+
+                avg = np.sum(images / images.shape[0], 0)
+                images = np.subtract(images, avg, casting = 'unsafe')
 
                 samples = np.array([images[i][patches[index]['r']:patches[index]['r']+patch_size[1], patches[index]['c']:patches[index]['c']+patch_size[0]] for i, index in enumerate(indexes)])
             else:
